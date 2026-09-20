@@ -53,18 +53,70 @@
     return uniqueSample(pool, 3, answer);
   }
 
-  /* ----------------------------------------------------------------- 어른 */
+  /* ----------------------------------------------------------------- 어른
+   *
+   * 세 단계. 전부 종이 없이 암산으로 푸는 것이 기준이다.
+   *   1단계 — 두 자리 덧뺄셈      (47 + 28)        목표 5~7초
+   *   2단계 — 한 자리 곱셈·혼합    (7 × 8 + 15)     목표 6~9초
+   *   3단계 — 두 자리 곱셈·나머지  (23 × 17)        목표 8~12초
+   */
+
+  /* --- 1단계 --- */
+
+  function adultAdd2() {
+    // 받아올림이 한 번은 나오게 — 그래야 암산할 맛이 난다
+    const a = randInt(23, 89);
+    const b = randInt(17, 89);
+    return { key: `a1+${a}+${b}`, text: `${a} + ${b} = ?`, answer: a + b, _near: 10 };
+  }
+
+  function adultSub2() {
+    const a = randInt(41, 99);
+    const b = randInt(13, a - 11);
+    return { key: `a1-${a}-${b}`, text: `${a} − ${b} = ?`, answer: a - b, _near: 10 };
+  }
+
+  function adultAdd3() {
+    const a = randInt(12, 79);
+    const b = randInt(12, 79);
+    const c = randInt(11, 49);
+    return { key: `a1s${a}+${b}+${c}`, text: `${a} + ${b} + ${c} = ?`, answer: a + b + c, _near: 10 };
+  }
+
+  /* --- 2단계 --- */
+
+  function adultMul1() {
+    // 2·5·10단은 너무 쉬워 뺀다
+    const a = randInt(3, 9);
+    const b = randInt(6, 9);
+    return { key: `a2*${a}*${b}`, text: `${a} × ${b} = ?`, answer: a * b, _a: a, _b: b };
+  }
+
+  function adultMul1Plus() {
+    const a = randInt(4, 9);
+    const b = randInt(4, 9);
+    const c = randInt(11, 49);
+    return { key: `a2p${a}*${b}+${c}`, text: `${a} × ${b} + ${c} = ?`, answer: a * b + c, _a: a, _b: b };
+  }
+
+  function adultMul2x1() {
+    const a = randInt(12, 39);
+    const b = randInt(3, 9);
+    return { key: `a2x${a}*${b}`, text: `${a} × ${b} = ?`, answer: a * b, _a: a, _b: b };
+  }
+
+  /* --- 3단계 --- */
 
   function adultMultiply() {
     const a = randInt(12, 29);
     const b = randInt(12, 29);
-    return { key: `a*${a}*${b}`, text: `${a} × ${b} = ?`, answer: a * b, _a: a, _b: b };
+    return { key: `a3*${a}*${b}`, text: `${a} × ${b} = ?`, answer: a * b, _a: a, _b: b };
   }
 
   function adultRemainder() {
     const a = randInt(100, 999);
     const b = randInt(7, 19);
-    return { key: `a%${a}%${b}`, text: `${a} ÷ ${b} 의 나머지는?`, answer: a % b, _b: b };
+    return { key: `a3%${a}%${b}`, text: `${a} ÷ ${b} 의 나머지는?`, answer: a % b, _b: b };
   }
 
   function adultMixed() {
@@ -74,8 +126,15 @@
     // 결과가 음수면 뺄 값을 줄인다 — 음수 답은 보기 만들기가 지저분해진다
     const prod = a * b;
     const cc = Math.min(c, prod - 1);
-    return { key: `am${a}*${b}-${cc}`, text: `${a} × ${b} − ${cc} = ?`, answer: prod - cc };
+    return { key: `a3m${a}*${b}-${cc}`, text: `${a} × ${b} − ${cc} = ?`, answer: prod - cc };
   }
+
+  /** 단계별 문제 구성. */
+  const ADULT_LEVELS = {
+    1: [[adultAdd2, 40], [adultSub2, 40], [adultAdd3, 20]],
+    2: [[adultMul1, 40], [adultMul1Plus, 30], [adultMul2x1, 30]],
+    3: [[adultMultiply, 50], [adultRemainder, 30], [adultMixed, 20]]
+  };
 
   /** 어른 오답: 계산을 틀렸을 때 실제로 나오는 값들. */
   function adultDistractors(q) {
@@ -83,12 +142,16 @@
     const pool = [];
 
     if (q._a && q._b) {
-      // 곱셈: 자릿수를 하나 놓치거나 더하는 흔한 실수
+      // 곱셈: 한 단 어긋나거나 자릿수를 놓치는 흔한 실수
       pool.push(ans + q._a, ans - q._a, ans + q._b, ans - q._b);
-      pool.push(ans + 10, ans - 10, ans + 100, ans - 100);
+      pool.push(ans + 10, ans - 10);
+      if (ans > 150) pool.push(ans + 100, ans - 100);
     } else if (q._b) {
       // 나머지: 1 차이, 그리고 "나머지를 거꾸로 센" 값
       pool.push(ans + 1, ans - 1, ans + 2, ans - 2, q._b - ans);
+    } else if (q._near) {
+      // 덧뺄셈: 받아올림을 빠뜨리거나 한 자리 틀리는 실수
+      pool.push(ans + 10, ans - 10, ans + 1, ans - 1, ans + 9, ans - 9, ans + 20, ans - 20);
     } else {
       pool.push(ans + 1, ans - 1, ans + 10, ans - 10, ans + 2, ans - 2);
     }
@@ -129,16 +192,18 @@
    * 문제 한 개를 만든다.
    * @param {'kid'|'adult'} type
    * @param {Set<string>} used  이미 나온 문제 키 (한 판 안에서 중복 방지)
+   * @param {number} [level]    어른 난이도 1~3 (기본 3). 아이는 무시한다.
    */
-  function generate(type, used) {
+  function generate(type, used, level) {
     used = used || new Set();
+    const lv = ADULT_LEVELS[level] ? level : 3;
 
     let q = null;
     // 같은 문제가 또 나오면 다시 뽑는다. 문제 공간이 넓어 실제로는 거의 한 번에 끝난다.
     for (let attempt = 0; attempt < 60; attempt += 1) {
       const cand = type === 'kid'
         ? weighted([[kidAdd, 40], [kidSub, 40], [kidMakeTen, 20]])()
-        : weighted([[adultMultiply, 50], [adultRemainder, 30], [adultMixed, 20]])();
+        : weighted(ADULT_LEVELS[lv])();
       if (!used.has(cand.key)) { q = cand; break; }
       q = cand; // 60번 다 겹치면 그냥 쓴다 (판이 비정상적으로 길어진 경우)
     }
@@ -160,5 +225,5 @@
     };
   }
 
-  global.Quiz = { generate: generate };
+  global.Quiz = { generate: generate, ADULT_LEVEL_MAX: 3 };
 })(window);

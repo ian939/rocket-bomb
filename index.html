@@ -24,7 +24,34 @@
   <!-- ============================================== S1 설정 -->
   <section id="screen-setup" class="screen on">
     <h1 class="title"><span class="r">R</span> 로켓단 폭탄 돌리기</h1>
-    <p class="subtitle">패드를 가운데 두고 네 자리에 앉으세요</p>
+    <p class="subtitle">패드를 가운데 두고 둘러앉으세요</p>
+
+    <div class="opt-bar">
+      <div class="opt">
+        <span class="opt-label">몇 명이서</span>
+        <div class="seg" id="count-row">
+          <button class="count-btn" data-n="2">2명</button>
+          <button class="count-btn" data-n="3">3명</button>
+          <button class="count-btn on" data-n="4">4명</button>
+        </div>
+      </div>
+      <div class="opt" id="level-opt">
+        <span class="opt-label">어른 난이도</span>
+        <div class="seg" id="level-row">
+          <button class="level-btn" data-lv="1">1<span class="ex">47+28</span></button>
+          <button class="level-btn" data-lv="2">2<span class="ex">7×8</span></button>
+          <button class="level-btn on" data-lv="3">3<span class="ex">23×17</span></button>
+        </div>
+      </div>
+      <div class="opt">
+        <span class="opt-label">한 판 시간</span>
+        <div class="seg" id="time-row">
+          <button class="time-btn" data-ti="0">1분</button>
+          <button class="time-btn on" data-ti="1">2분</button>
+          <button class="time-btn" data-ti="2">3분</button>
+        </div>
+      </div>
+    </div>
 
     <div class="seat-grid" id="seat-grid"></div>
 

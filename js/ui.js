@@ -5,25 +5,8 @@
   const $ = (sel) => document.querySelector(sel);
   const CH = window.Game.CHARACTERS;
 
-  /* 자리 배치.
-   *   A = 왼쪽 위,  B = 오른쪽 위,  C = 왼쪽 아래,  D = 오른쪽 아래
-   * 패드 아래쪽(D 쪽)에 앉은 사람이 정방향. 나머지는 자기 쪽으로 돌린다. */
-  const SEAT_LAYOUT = {
-    A: { cell: 1, rot: 180 },
-    B: { cell: 2, rot: 180 },
-    C: { cell: 3, rot: 0 },
-    D: { cell: 4, rot: 0 }
-  };
-  // 위 두 칸은 맞은편에 앉으므로 뒤집고, 아래 두 칸은 그대로 본다.
-  // 좌우로 앉는 사람을 위한 90/270 은 아래 SEAT_MODES 에서 고른다.
-
-  const SEAT_MODES = {
-    // 마주보고 둘씩 (기본) — 위 두 명은 180°, 아래 두 명은 0°
-    facing: { A: 180, B: 180, C: 0, D: 0 },
-    // 네 방향에서 하나씩 — 대각선으로 앉되 각자 자기 변을 바라볼 때
-    around: { A: 90, B: 180, C: 0, D: 270 }
-  };
-  let seatMode = 'facing';
+  /* 자리 배치와 회전각은 game.js 의 SEAT_PLANS 가 인원수에 맞게 준다.
+   * 위쪽에 앉은 사람은 180°, 아래쪽은 0°. 패드를 사이에 두고 마주본다. */
 
   let game = null;
   let busy = false;          // 연출 중에는 입력을 받지 않는다
@@ -41,27 +24,42 @@
 
   /* ============================================================== S1 설정 */
 
-  const setup = [
-    { name: '', type: 'kid',   character: 'meowth',    seat: 'A' },
-    { name: '', type: 'adult', character: 'roy',       seat: 'B' },
-    { name: '', type: 'kid',   character: 'wobbuffet', seat: 'C' },
-    { name: '', type: 'adult', character: 'rosa',      seat: 'D' }
+  /* 최대 4명분을 들고 있다가 playerCount 만큼만 쓴다.
+   * 인원을 줄였다 늘려도 앞서 적은 이름이 살아 있다. */
+  const ALL_SEATS = [
+    { name: '', type: 'kid',   character: 'meowth' },
+    { name: '', type: 'adult', character: 'roy' },
+    { name: '', type: 'kid',   character: 'wobbuffet' },
+    { name: '', type: 'adult', character: 'rosa' }
   ];
+  let playerCount = 4;
 
-  const SEAT_LABEL = { A: '왼쪽 위', B: '오른쪽 위', C: '왼쪽 아래', D: '오른쪽 아래' };
+  /** 지금 쓰는 참가자만 */
+  function activeSetup() { return ALL_SEATS.slice(0, playerCount); }
+
+  /* 인원수에 따라 자리 이름이 달라진다 (game.js SEAT_PLANS 와 짝) */
+  const SEAT_LABEL = {
+    2: ['위쪽', '아래쪽'],
+    3: ['왼쪽 위', '오른쪽 위', '아래쪽'],
+    4: ['왼쪽 위', '오른쪽 위', '왼쪽 아래', '오른쪽 아래']
+  };
 
   function renderSetup() {
     const grid = $('#seat-grid');
     grid.innerHTML = '';
+    grid.dataset.count = String(playerCount);
 
-    setup.forEach((p, i) => {
+    const labels = SEAT_LABEL[playerCount];
+
+    activeSetup().forEach((p, i) => {
       const card = document.createElement('div');
       card.className = 'seat-card';
 
-      const taken = setup.filter((q, j) => j !== i).map((q) => q.character);
+      // 지금 쓰는 사람들끼리만 캐릭터 중복을 따진다
+      const taken = activeSetup().filter((q, j) => j !== i).map((q) => q.character);
 
       card.innerHTML =
-        '<h3>' + p.seat + ' · ' + SEAT_LABEL[p.seat] + '</h3>' +
+        '<h3>' + (i + 1) + '번 · ' + labels[i] + '</h3>' +
         '<input class="name-input" type="text" maxlength="6" placeholder="이름 (비우면 캐릭터 이름)" value="' +
           escapeAttr(p.name) + '">' +
         '<div class="type-row">' +
@@ -89,7 +87,7 @@
         b.addEventListener('click', () => {
           const want = b.dataset.char;
           // 이미 남이 쓰고 있으면 서로 맞바꾼다 — 고르다 막히는 일이 없게
-          const other = setup.find((q) => q !== p && q.character === want);
+          const other = activeSetup().find((q) => q !== p && q.character === want);
           if (other) other.character = p.character;
           p.character = want;
           renderSetup();
@@ -98,6 +96,24 @@
 
       grid.appendChild(card);
     });
+
+    syncCountUI();
+  }
+
+  function syncCountUI() {
+    document.querySelectorAll('#count-row .count-btn').forEach((b) => {
+      b.classList.toggle('on', +b.dataset.n === playerCount);
+    });
+    document.querySelectorAll('#level-row .level-btn').forEach((b) => {
+      b.classList.toggle('on', +b.dataset.lv === settings.adultLevel);
+    });
+    document.querySelectorAll('#time-row .time-btn').forEach((b) => {
+      b.classList.toggle('on', +b.dataset.ti === settings.timeIndex);
+    });
+    // 어른이 아무도 없으면 난이도 고르기가 의미 없다
+    const anyAdult = activeSetup().some((p) => p.type === 'adult');
+    const lvRow = $('#level-row');
+    if (lvRow) lvRow.classList.toggle('dim', !anyAdult);
   }
 
   function escapeAttr(s) {
@@ -109,7 +125,8 @@
   function renderReady() {
     const box = $('#ready-order');
     box.innerHTML = '';
-    setup.forEach((p, i) => {
+    const list = activeSetup();
+    list.forEach((p, i) => {
       const c = CH.find((x) => x.id === p.character);
       const chip = document.createElement('div');
       chip.className = 'ready-chip';
@@ -118,7 +135,7 @@
         '<span>' + escapeAttr(p.name || c.name) + '</span>' +
         '<span class="tag">' + (p.type === 'kid' ? '아이' : '어른') + '</span>';
       box.appendChild(chip);
-      if (i < setup.length - 1) {
+      if (i < list.length - 1) {
         const ar = document.createElement('div');
         ar.className = 'ready-arrow';
         ar.textContent = '→';
@@ -132,17 +149,16 @@
   function buildQuads() {
     const grid = $('#quad-grid');
     grid.innerHTML = '';
-    const rots = SEAT_MODES[seatMode];
+    grid.dataset.count = String(game.state.players.length);
 
-    // 자리 순서대로 칸을 만든다 (A 왼위, B 오른위, C 왼아래, D 오른아래)
-    ['A', 'B', 'C', 'D'].forEach((seat) => {
-      const p = game.state.players.find((x) => x.seat === seat);
-      const c = window.Game.CHARACTERS.find((x) => x.id === p.character);
+    game.state.players.forEach((p) => {
+      const c = CH.find((x) => x.id === p.character);
 
       const quad = document.createElement('div');
       quad.className = 'quad';
-      quad.dataset.seat = seat;
-      quad.dataset.rot = String(rots[seat]);
+      quad.dataset.seat = p.seat;
+      quad.dataset.rot = String(p.rot);
+      quad.style.setProperty('--area', p.area);
       quad.innerHTML =
         '<div class="idle-face">' +
           '<div class="nm">' + escapeAttr(p.name) +
@@ -218,16 +234,31 @@
     moveBomb(cur.seat);
   }
 
+  /* 폭탄은 지금 차례인 구역 쪽으로 옮긴다.
+   * 인원마다 구역 모양이 달라 좌표를 고정할 수 없어 실제 위치를 재서 쓴다. */
   function moveBomb(seat) {
     const bomb = $('#bomb');
-    // 현재 차례 쪽으로 살짝 기울고 밀린다
-    const off = {
-      A: 'translate(-26px,-22px) rotate(-14deg)',
-      B: 'translate(26px,-22px) rotate(14deg)',
-      C: 'translate(-26px,22px) rotate(-14deg)',
-      D: 'translate(26px,22px) rotate(14deg)'
-    }[seat] || 'none';
-    bomb.style.transform = off;
+    const quad = document.querySelector('.quad[data-seat="' + seat + '"]');
+    const grid = $('#quad-grid');
+    if (!quad || !grid) return;
+
+    const q = quad.getBoundingClientRect();
+    const g = grid.getBoundingClientRect();
+    const cx = g.left + g.width / 2;
+    const cy = g.top + g.height / 2;
+
+    // 화면 한가운데에서 그 구역 중심 쪽으로 조금만 다가간다
+    const dx = (q.left + q.width / 2) - cx;
+    const dy = (q.top + q.height / 2) - cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const reach = Math.min(len * 0.34, 46);
+
+    bomb.style.setProperty('--bomb-x', '50%');
+    bomb.style.setProperty('--bomb-y', '50%');
+    bomb.style.transform =
+      'translate(' + Math.round(dx / len * reach) + 'px,' +
+                     Math.round(dy / len * reach) + 'px) ' +
+      'rotate(' + (dx < 0 ? -14 : 14) + 'deg)';
   }
 
   function onChoice(i, quad, btn) {
@@ -332,7 +363,7 @@
       pause: () => { $('#pause-veil').classList.add('on'); window.Sound.stopTick(); },
       resume: () => { $('#pause-veil').classList.remove('on'); }
     });
-    game.setPlayers(setup);
+    game.setPlayers(activeSetup());
   }
 
   function beginRound() {
@@ -349,10 +380,10 @@
   function wire() {
     $('#btn-to-ready').addEventListener('click', () => {
       // 이름을 비운 사람은 캐릭터 이름으로 채운다
-      setup.forEach((p) => {
+      activeSetup().forEach((p) => {
         if (!p.name) p.name = CH.find((c) => c.id === p.character).name;
       });
-      const kids = setup.filter((p) => p.type === 'kid').length;
+      const kids = activeSetup().filter((p) => p.type === 'kid').length;
       $('#setup-warn').textContent =
         kids === 0 ? '아이가 없어도 시작은 됩니다 — 모두 어려운 문제를 풉니다.' : '';
       renderReady();
@@ -397,6 +428,32 @@
     tg($('#tg-flash'), 'flash');
     tg($('#tg-gentle'), 'gentle');
 
+    // 인원 — 줄였다 늘려도 앞서 적은 이름이 살아 있다
+    document.querySelectorAll('#count-row .count-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        playerCount = +b.dataset.n;
+        renderSetup();
+      });
+    });
+
+    // 어른 난이도
+    document.querySelectorAll('#level-row .level-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        settings.adultLevel = +b.dataset.lv;
+        applySettings();
+        syncCountUI();
+      });
+    });
+
+    // 한 판 시간 (고른 값에서 ±20초 흔들린다)
+    document.querySelectorAll('#time-row .time-btn').forEach((b) => {
+      b.addEventListener('click', () => {
+        settings.timeIndex = +b.dataset.ti;
+        applySettings();
+        syncCountUI();
+      });
+    });
+
     // 화면이 가려지면 판을 멈춘다 — 실수로 홈 버튼을 눌러 터지면 억울하다
     document.addEventListener('visibilitychange', () => {
       if (!game) return;
@@ -408,7 +465,7 @@
     window.addEventListener('orientationchange', () => later(sizeQuads, 260));
   }
 
-  const settings = { sound: true, flash: true, gentle: false };
+  const settings = { sound: true, flash: true, gentle: false, adultLevel: 3, timeIndex: 1 };
 
   function applySettings() {
     window.Sound.setEnabled(settings.sound);
@@ -416,6 +473,8 @@
       game.state.settings.sound = settings.sound;
       game.state.settings.flash = settings.flash;
       game.state.settings.gentle = settings.gentle;
+      game.state.settings.adultLevel = settings.adultLevel;
+      game.state.settings.timeIndex = settings.timeIndex;
     }
   }
 
@@ -428,29 +487,31 @@
       const raw = localStorage.getItem(STORE);
       if (!raw) return;
       const d = JSON.parse(raw);
-      if (Array.isArray(d.players) && d.players.length === 4) {
+      if (Array.isArray(d.players)) {
         d.players.forEach((p, i) => {
-          if (!setup[i]) return;
-          setup[i].name = typeof p.name === 'string' ? p.name.slice(0, 6) : '';
-          if (p.type === 'kid' || p.type === 'adult') setup[i].type = p.type;
-          if (CH.some((c) => c.id === p.character)) setup[i].character = p.character;
+          if (!ALL_SEATS[i]) return;
+          ALL_SEATS[i].name = typeof p.name === 'string' ? p.name.slice(0, 6) : '';
+          if (p.type === 'kid' || p.type === 'adult') ALL_SEATS[i].type = p.type;
+          if (CH.some((c) => c.id === p.character)) ALL_SEATS[i].character = p.character;
         });
       }
       if (d.settings) {
         ['sound', 'flash', 'gentle'].forEach((k) => {
           if (typeof d.settings[k] === 'boolean') settings[k] = d.settings[k];
         });
+        if ([1, 2, 3].indexOf(d.settings.adultLevel) >= 0) settings.adultLevel = d.settings.adultLevel;
+        if ([0, 1, 2].indexOf(d.settings.timeIndex) >= 0) settings.timeIndex = d.settings.timeIndex;
       }
-      if (d.seatMode === 'around' || d.seatMode === 'facing') seatMode = d.seatMode;
+      if ([2, 3, 4].indexOf(d.playerCount) >= 0) playerCount = d.playerCount;
     } catch (e) { /* 저장값이 깨졌으면 그냥 기본값으로 */ }
   }
 
   function save() {
     try {
       localStorage.setItem(STORE, JSON.stringify({
-        players: setup.map((p) => ({ name: p.name, type: p.type, character: p.character })),
+        players: ALL_SEATS.map((p) => ({ name: p.name, type: p.type, character: p.character })),
         settings: settings,
-        seatMode: seatMode
+        playerCount: playerCount
       }));
     } catch (e) { /* 사파리 비공개 모드 등 — 없어도 게임은 돌아간다 */ }
   }
@@ -484,8 +545,11 @@
   window.__ui = {
     get game() { return game; },
     beginRound: beginRound,
-    setup: setup,
+    get setup() { return activeSetup(); },
     show: show,
-    setSeatMode: (m) => { seatMode = m; if (game) buildQuads(); }
+    settings: settings,
+    setCount: (n) => { playerCount = n; renderSetup(); },
+    setLevel: (lv) => { settings.adultLevel = lv; applySettings(); syncCountUI(); },
+    setTime: (ti) => { settings.timeIndex = ti; applySettings(); syncCountUI(); }
   };
 })();

@@ -23,8 +23,31 @@
   // 인물 비율이 그림마다 달라(전신/상반신) 그대로 두면 한 명만 작아 보인다.
   // 위 scale 로 눈에 보이는 크기를 맞춘다.
 
-  const ROUND_MIN_MS = 60000;
-  const ROUND_MAX_MS = 120000;
+  /* 판 시간은 고른 값에서 ±20초 흔든다 — 대략 얼마인지는 알되
+   * 정확히 언제 터질지는 모르게. 긴장감이 사라지지 않는다. */
+  const TIME_PRESETS = [60000, 120000, 180000];   // 1분 / 2분 / 3분
+  const TIME_JITTER_MS = 20000;
+  const ROUND_MIN_MS = 20000;                      // 흔들어도 이보다 짧아지지 않는다
+
+  /* 인원별 자리 배치. 값은 [그리드 영역, 회전각].
+   * 2명은 위아래로 마주보고, 3명은 위에 둘·아래 하나(아래쪽이 넓다). */
+  const SEAT_PLANS = {
+    2: [
+      { seat: 'A', area: '1 / 1 / 2 / 3', rot: 180 },
+      { seat: 'B', area: '2 / 1 / 3 / 3', rot: 0 }
+    ],
+    3: [
+      { seat: 'A', area: '1 / 1 / 2 / 2', rot: 180 },
+      { seat: 'B', area: '1 / 2 / 2 / 3', rot: 180 },
+      { seat: 'C', area: '2 / 1 / 3 / 3', rot: 0 }
+    ],
+    4: [
+      { seat: 'A', area: '1 / 1 / 2 / 2', rot: 180 },
+      { seat: 'B', area: '1 / 2 / 2 / 3', rot: 180 },
+      { seat: 'C', area: '2 / 1 / 3 / 2', rot: 0 },
+      { seat: 'D', area: '2 / 2 / 3 / 3', rot: 0 }
+    ]
+  };
 
   /** 남은 시간 비율 -> 똑딱 간격(ms). PRD 4.4 */
   function tickIntervalFor(ratioLeft) {
@@ -47,7 +70,11 @@
       usedQuestions: new Set(),
       currentQuestion: null,
       loserId: null,
-      settings: { sound: true, flash: true, gentle: false }
+      settings: {
+        sound: true, flash: true, gentle: false,
+        adultLevel: 3,        // 어른 난이도 1~3
+        timeIndex: 1          // TIME_PRESETS 인덱스 (기본 2분)
+      }
     };
 
     let rafId = null;
@@ -55,13 +82,19 @@
 
     /* ----------------------------------------------------------- 참가자 */
 
+    /** 참가자는 2~4명. 자리는 인원수에 맞는 배치로 다시 매긴다. */
     function setPlayers(list) {
-      state.players = list.map((p, i) => ({
+      const n = Math.max(2, Math.min(4, list.length));
+      const plan = SEAT_PLANS[n];
+
+      state.players = list.slice(0, n).map((p, i) => ({
         id: p.id != null ? p.id : i,
         name: p.name || characterById(p.character).name,
         type: p.type,                 // 'kid' | 'adult'
         character: p.character,
-        seat: p.seat,
+        seat: plan[i].seat,
+        area: plan[i].area,
+        rot: plan[i].rot,
         livesLeft: 2,
         wrongThisTurn: 0
       }));
@@ -87,8 +120,9 @@
       // 시작하는 사람을 매 판 바꾼다 — 늘 같은 사람이 먼저면 불공평하다
       state.turnIndex = Math.floor(Math.random() * state.players.length);
 
-      state.roundTotalMs = ROUND_MIN_MS
-        + Math.floor(Math.random() * (ROUND_MAX_MS - ROUND_MIN_MS + 1));
+      const base = TIME_PRESETS[state.settings.timeIndex] || TIME_PRESETS[1];
+      const jitter = Math.floor((Math.random() * 2 - 1) * TIME_JITTER_MS);
+      state.roundTotalMs = Math.max(ROUND_MIN_MS, base + jitter);
       state.endsAt = now() + state.roundTotalMs;
 
       lastTickInterval = 0;
@@ -99,7 +133,8 @@
 
     function nextQuestion() {
       const p = currentPlayer();
-      state.currentQuestion = global.Quiz.generate(p.type, state.usedQuestions);
+      state.currentQuestion = global.Quiz.generate(
+        p.type, state.usedQuestions, state.settings.adultLevel);
       emit('question');
     }
 
@@ -245,9 +280,17 @@
       resume: resume,
       isPaused: isPaused,
       remainMs: remainMs,
-      ratioLeft: ratioLeft
+      ratioLeft: ratioLeft,
+      seatPlan: function () { return SEAT_PLANS[state.players.length] || SEAT_PLANS[4]; }
     };
   }
 
-  global.Game = { create: createGame, CHARACTERS: CHARACTERS, SEATS: SEATS };
+  global.Game = {
+    create: createGame,
+    CHARACTERS: CHARACTERS,
+    SEATS: SEATS,
+    SEAT_PLANS: SEAT_PLANS,
+    TIME_PRESETS: TIME_PRESETS,
+    TIME_JITTER_MS: TIME_JITTER_MS
+  };
 })(window);

@@ -68,36 +68,78 @@ button {
 
 /* ================================================================ 설정 S1 */
 
-#screen-setup { overflow-y: auto; padding: 20px 24px 32px; }
+#screen-setup { overflow-y: auto; padding: 12px 24px 24px; }
 
 .title {
   text-align: center;
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 900;
   letter-spacing: -.5px;
-  margin: 4px 0 2px;
+  margin: 2px 0 1px;
 }
 .title .r {
   display: inline-block;
   color: var(--rocket-red);
-  font-size: 40px;
+  font-size: 33px;
   transform: translateY(2px);
 }
-.subtitle { text-align: center; color: var(--text-dim); font-size: 15px; margin-bottom: 16px; }
+.subtitle { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 10px; }
+
+/* --- 인원·난이도·시간 --- */
+
+.opt-bar {
+  max-width: 880px;
+  margin: 0 auto 12px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.opt { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.opt-label { font-size: 13px; color: var(--text-dim); font-weight: 700; }
+.opt.dim, #level-row.dim { opacity: .35; }
+
+.seg { display: flex; gap: 6px; }
+.seg button {
+  min-width: 62px;
+  min-height: 48px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--bg-2);
+  border: 2px solid var(--line);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-dim);
+  line-height: 1.15;
+}
+.seg button.on {
+  background: var(--rocket-red);
+  border-color: var(--rocket-red);
+  color: #fff;
+}
+.seg .ex {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: .8;
+  margin-top: 1px;
+}
 
 .seat-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  gap: 10px;
   max-width: 880px;
   margin: 0 auto;
 }
+/* 2명이면 카드 둘이 나란히, 3명이면 아래 칸이 가운데로 */
+.seat-grid[data-count="3"] .seat-card:nth-child(3) { grid-column: 1 / 3; max-width: 430px; justify-self: center; width: 100%; }
 
 .seat-card {
   background: var(--panel);
   border: 2px solid var(--line);
   border-radius: 18px;
-  padding: 12px 14px 14px;
+  padding: 9px 12px 11px;
 }
 .seat-card h3 {
   margin: 0 0 8px;
@@ -108,9 +150,9 @@ button {
 
 .name-input {
   width: 100%;
-  height: 50px;
+  height: 44px;
   padding: 0 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   border-radius: 12px;
   border: 2px solid var(--line);
   background: var(--bg-2);
@@ -120,14 +162,14 @@ button {
 }
 .name-input::placeholder { color: #6a6a88; font-weight: 600; }
 
-.type-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.type-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .type-btn {
   flex: 1;
-  height: 52px;
+  height: 46px;
   border-radius: 12px;
   background: var(--bg-2);
   border: 2px solid var(--line);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: var(--text-dim);
 }
@@ -142,7 +184,8 @@ button {
 .char-btn {
   flex: 1;
   aspect-ratio: 1;
-  min-height: 74px;
+  min-height: 60px;
+  max-height: 84px;
   border-radius: 14px;
   background: var(--bg-2);
   border: 2px solid var(--line);
@@ -163,10 +206,10 @@ button {
 
 .setup-foot {
   max-width: 880px;
-  margin: 18px auto 0;
+  margin: 12px auto 0;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 .toggles { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
@@ -182,7 +225,7 @@ button {
 }
 .toggle.on { border-color: var(--ok); color: var(--text); }
 
-.setup-warn { color: var(--warn); font-size: 15px; text-align: center; margin-top: 10px; min-height: 20px; }
+.setup-warn { color: var(--warn); font-size: 14px; text-align: center; margin-top: 7px; min-height: 18px; }
 
 /* ================================================================ 준비 S2 */
 
@@ -227,6 +270,7 @@ button {
 
 .quad {
   position: relative;
+  grid-area: var(--area);
   border-radius: 20px;
   background: var(--panel);
   border: 2px solid var(--line);
@@ -369,7 +413,7 @@ button {
 /* --- 가운데 폭탄 --- */
 #bomb {
   position: absolute;
-  top: 50%; left: 50%;
+  top: var(--bomb-y, 50%); left: var(--bomb-x, 50%);
   width: clamp(70px, 11vh, 112px);
   height: clamp(70px, 11vh, 112px);
   margin: calc(clamp(70px, 11vh, 112px) / -2) 0 0 calc(clamp(70px, 11vh, 112px) / -2);
