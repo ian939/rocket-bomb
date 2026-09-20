@@ -147,7 +147,7 @@
         '<div class="idle-face">' +
           '<div class="nm">' + escapeAttr(p.name) +
             ' <span class="tag">' + (p.type === 'kid' ? '아이' : '어른') + '</span></div>' +
-          '<img src="' + c.img + '" alt="" style="--cs:' + c.scale + ';transform:scale(' + c.scale + ')">' +
+          '<img src="' + c.img + '" alt="" style="--cs:' + c.scale + '">' +
           '<div class="hearts idle-hearts"></div>' +
         '</div>' +
         '<div class="quad-inner">' +
