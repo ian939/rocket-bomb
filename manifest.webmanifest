@@ -1,0 +1,14 @@
+{
+  "name": "로켓단 폭탄 돌리기",
+  "short_name": "폭탄돌리기",
+  "description": "아이패드 하나로 네 명이 둘러앉아 즐기는 폭탄 돌리기 숫자 퀴즈",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#12121c",
+  "theme_color": "#12121c",
+  "icons": [
+    { "src": "assets/bomb.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

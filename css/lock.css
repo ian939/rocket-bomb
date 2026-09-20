@@ -1,0 +1,45 @@
+/* 패드 터치 잠금 — 스타일시트 맨 위에 넣는다.
+ * 아래 두 규칙은 한 쌍이다. 예외 규칙을 빼면 이름 쓰는 칸에서 글자를 못 고친다. */
+
+* {
+  box-sizing: border-box;
+  /* 누를 때마다 파란 사각형이 번쩍이지 않게 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  /* 페이지 전체가 튀지 않게 — 스크롤은 화면 안쪽 요소에서만 */
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
+
+  /* 실수로 화면을 키우거나 줄이지 못하게.
+   * pan-x pan-y = 손가락으로 밀어 넘기는 것만 남기고
+   * 두 손가락 확대와 두 번 두드려 확대를 막는다.
+   * none 이면 스크롤이 죽고, pan-y 면 옆으로 미는 탭 줄이 죽는다. */
+  touch-action: pan-x pan-y;
+  /* 화면 끝을 당겨 새로고침하거나 튕기는 것 막기 */
+  overscroll-behavior: none;
+
+  /* 길게 눌렀을 때 뜨는 복사·찾아보기 메뉴 막기 */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 글자 칸만 예외 — 글자를 고치려면 선택도 되고 커서도 옮겨야 한다 */
+input, textarea, [contenteditable] {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: auto;
+}
+
+/* 손으로 그리는 칸처럼 스크롤이 아예 없어야 하는 곳만 따로 막는다.
+ * (해당 요소 선택자로 바꿔 쓸 것)
+.draw-pad {
+  touch-action: none;
+  user-select: none;
+}
+*/

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12121c">
+<meta name="description" content="아이패드 하나로 네 명이 둘러앉아 즐기는 폭탄 돌리기 숫자 퀴즈">
+<title>로켓단 폭탄 돌리기</title>
+
+<!-- 잠금이 가장 먼저다 — 다른 코드가 화면을 그리기 전에 이벤트가 걸려 있어야 한다 -->
+<script src="js/lock.js"></script>
+<link rel="stylesheet" href="css/lock.css">
+<link rel="stylesheet" href="css/game.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/bomb.png">
+<link rel="icon" href="assets/bomb.png">
+</head>
+<body>
+
+<div id="shake-root">
+
+  <!-- ============================================== S1 설정 -->
+  <section id="screen-setup" class="screen on">
+    <h1 class="title"><span class="r">R</span> 로켓단 폭탄 돌리기</h1>
+    <p class="subtitle">패드를 가운데 두고 네 자리에 앉으세요</p>
+
+    <div class="seat-grid" id="seat-grid"></div>
+
+    <div class="setup-foot">
+      <div class="toggles">
+        <button class="toggle on" id="tg-sound">🔊 소리</button>
+        <button class="toggle on" id="tg-flash">⚡ 번쩍임</button>
+        <button class="toggle" id="tg-gentle">🧸 순한 폭발</button>
+      </div>
+      <button class="btn" id="btn-to-ready">준비 완료 →</button>
+    </div>
+    <p class="setup-warn" id="setup-warn"></p>
+  </section>
+
+  <!-- ============================================== S2 준비 -->
+  <section id="screen-ready" class="screen">
+    <h2 class="title">폭탄이 돌기 시작합니다</h2>
+    <div class="ready-order" id="ready-order"></div>
+    <div class="rules">
+      ① 내 차례에 문제가 뜹니다<br>
+      ② 맞히면 다음 사람에게 넘어갑니다<br>
+      ③ <b>아이</b> — 한 턴에 두 번 틀리면 터집니다<br>
+      ④ <b>어른</b> — 판 전체에서 두 번 틀리면 터집니다<br>
+      ⑤ 시간이 다 되면 들고 있는 사람이 터집니다<br>
+      ⏱ 남은 시간은 보이지 않습니다. <b>소리가 빨라지면 조심!</b>
+    </div>
+    <button class="btn" id="btn-start">시작!</button>
+    <button class="btn ghost" id="btn-back-setup">← 자리 바꾸기</button>
+  </section>
+
+  <!-- ============================================== S3 플레이 -->
+  <section id="screen-play" class="screen">
+    <div class="quad-grid" id="quad-grid"></div>
+    <div id="bomb"><img src="assets/bomb.png" alt=""></div>
+    <div id="edge-pulse"></div>
+    <div id="pause-veil">
+      <p>잠깐 멈췄어요</p>
+      <button class="btn" id="btn-resume">계속하기</button>
+    </div>
+  </section>
+
+  <!-- ============================================== S5 결과 -->
+  <section id="screen-result" class="screen">
+    <img id="result-face" src="" alt="">
+    <h2 id="result-title"></h2>
+    <p id="result-cause"></p>
+    <div class="result-btns">
+      <button class="btn" id="btn-again">다시 하기</button>
+      <button class="btn ghost" id="btn-change">멤버 바꾸기</button>
+    </div>
+  </section>
+
+  <!-- 폭발 연출 (모든 화면 위) -->
+  <div id="flash"></div>
+  <div id="boom-art"><img src="assets/explosion.png" alt=""></div>
+
+</div>
+
+<div id="rotate-hint">
+  <div class="ic">📱↻</div>
+  <h2>패드를 가로로 돌려주세요</h2>
+  <p style="color:#9a9ab5">네 명이 둘러앉는 게임이에요</p>
+</div>
+
+<script src="js/quiz.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script>
+// 한 번 열어두면 다음부터는 인터넷 없이도 열린다
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+</script>
+</body>
+</html>

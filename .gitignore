@@ -1,0 +1,6 @@
+# Codex 원본 이미지 (1254px) — 배포본은 assets/ 의 512px
+assets-src/
+
+.DS_Store
+Thumbs.db
+desktop.ini
