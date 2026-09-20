@@ -21,9 +21,28 @@
 
 <div id="shake-root">
 
-  <!-- ============================================== S1 설정 -->
-  <section id="screen-setup" class="screen on">
+  <!-- ============================================== S0 버전 고르기 -->
+  <section id="screen-home" class="screen on">
     <h1 class="title"><span class="r">R</span> 로켓단 폭탄 돌리기</h1>
+    <p class="subtitle">무엇으로 놀까요?</p>
+    <div class="mode-cards">
+      <button class="mode-card" data-mode="quiz">
+        <span class="mc-icon">🔢</span>
+        <span class="mc-name">숫자 퀴즈</span>
+        <span class="mc-desc">문제를 풀어서 넘긴다<br>아이와 어른 난이도가 다르다</span>
+      </button>
+      <button class="mode-card" data-mode="word">
+        <span class="mc-icon">💬</span>
+        <span class="mc-name">끝말잇기</span>
+        <span class="mc-desc">말로 이어가고 Pass 를 누른다<br>맞고 틀리고는 사람끼리 본다</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ============================================== S1 설정 -->
+  <section id="screen-setup" class="screen">
+    <button class="back-btn" id="btn-home">← 버전 고르기</button>
+    <h1 class="title" id="setup-title"><span class="r">R</span> 로켓단 폭탄 돌리기</h1>
     <p class="subtitle">패드를 가운데 두고 둘러앉으세요</p>
 
     <div class="opt-bar">
@@ -70,14 +89,7 @@
   <section id="screen-ready" class="screen">
     <h2 class="title">폭탄이 돌기 시작합니다</h2>
     <div class="ready-order" id="ready-order"></div>
-    <div class="rules">
-      ① 내 차례에 문제가 뜹니다<br>
-      ② 맞히면 다음 사람에게 넘어갑니다<br>
-      ③ <b>아이</b> — 한 턴에 두 번 틀리면 터집니다<br>
-      ④ <b>어른</b> — 판 전체에서 두 번 틀리면 터집니다<br>
-      ⑤ 시간이 다 되면 들고 있는 사람이 터집니다<br>
-      ⏱ 남은 시간은 보이지 않습니다. <b>소리가 빨라지면 조심!</b>
-    </div>
+    <div class="rules" id="rules-box"></div>
     <button class="btn" id="btn-start">시작!</button>
     <button class="btn ghost" id="btn-back-setup">← 자리 바꾸기</button>
   </section>
@@ -98,9 +110,11 @@
     <img id="result-face" src="" alt="">
     <h2 id="result-title"></h2>
     <p id="result-cause"></p>
+    <p id="result-passes" class="result-passes" style="display:none"></p>
     <div class="result-btns">
       <button class="btn" id="btn-again">다시 하기</button>
       <button class="btn ghost" id="btn-change">멤버 바꾸기</button>
+      <button class="btn ghost" id="btn-mode">버전 바꾸기</button>
     </div>
   </section>
 

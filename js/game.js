@@ -49,6 +49,21 @@
     ]
   };
 
+  /* 끝말잇기 주제. 판을 시작할 때 하나 뽑는다.
+   * easy 는 일곱 살이 아는 것만 — 아이가 섞여 있으면 여기서만 고른다. */
+  const WORD_TOPICS = [
+    { id: 'free',   label: '아무 말이나',   icon: '💬', easy: true },
+    { id: 'food',   label: '먹는 것',       icon: '🍎', easy: true },
+    { id: 'animal', label: '동물',          icon: '🐶', easy: true },
+    { id: 'thing',  label: '집에 있는 것',  icon: '🏠', easy: true },
+    { id: 'place',  label: '가는 곳',       icon: '🚌', easy: true },
+    { id: 'body',   label: '몸',            icon: '👂', easy: true },
+    { id: 'country',label: '나라·도시',     icon: '🌍', easy: false },
+    { id: 'job',    label: '직업',          icon: '👩‍🚒', easy: false },
+    { id: 'nature', label: '자연',          icon: '🌊', easy: false },
+    { id: 'sport',  label: '운동·놀이',     icon: '⚽', easy: true }
+  ];
+
   /** 남은 시간 비율 -> 똑딱 간격(ms). PRD 4.4 */
   function tickIntervalFor(ratioLeft) {
     if (ratioLeft > 0.50) return 1000;
@@ -70,10 +85,14 @@
       usedQuestions: new Set(),
       currentQuestion: null,
       loserId: null,
+      mode: 'quiz',          // 'quiz' | 'word'
+      topic: null,           // 끝말잇기 주제
+      passCount: 0,          // 이번 판에 넘긴 횟수
       settings: {
         sound: true, flash: true, gentle: false,
         adultLevel: 3,        // 어른 난이도 1~3
-        timeIndex: 1          // TIME_PRESETS 인덱스 (기본 2분)
+        timeIndex: 1,         // TIME_PRESETS 인덱스 (기본 2분)
+        mode: 'quiz'
       }
     };
 
@@ -112,9 +131,11 @@
 
     function startRound() {
       state.screen = 'play';
+      state.mode = state.settings.mode === 'word' ? 'word' : 'quiz';
       state.usedQuestions = new Set();
       state.loserId = null;
       state.pausedRemainMs = null;
+      state.passCount = 0;
       state.players.forEach((p) => { p.livesLeft = 2; p.wrongThisTurn = 0; });
 
       // 시작하는 사람을 매 판 바꾼다 — 늘 같은 사람이 먼저면 불공평하다
@@ -125,8 +146,23 @@
       state.roundTotalMs = Math.max(ROUND_MIN_MS, base + jitter);
       state.endsAt = now() + state.roundTotalMs;
 
+      // 끝말잇기는 주제를 하나 뽑는다. 아이가 있으면 쉬운 것 중에서만.
+      if (state.mode === 'word') {
+        const hasKid = state.players.some((p) => p.type === 'kid');
+        const pool = hasKid ? WORD_TOPICS.filter((t) => t.easy) : WORD_TOPICS;
+        state.topic = pool[Math.floor(Math.random() * pool.length)];
+      } else {
+        state.topic = null;
+      }
+      state.currentQuestion = null;
+
+      // 화면을 먼저 그리게 한다 — 모드가 바뀌면 구역 내용 자체가 달라지므로
+      // 첫 문제를 내기 전에 새 구역이 서 있어야 한다.
+      emit('roundSetup');
+
+      if (state.mode === 'quiz') nextQuestion();
+
       lastTickInterval = 0;
-      nextQuestion();
       startLoop();
       emit('roundStart');
     }
@@ -142,7 +178,8 @@
 
     /** 보기를 골랐다. @returns {'correct'|'warn'|'boom'|'ignored'} */
     function answer(choiceIndex) {
-      if (state.screen !== 'play' || !state.currentQuestion) return 'ignored';
+      if (state.screen !== 'play' || state.mode !== 'quiz') return 'ignored';
+      if (!state.currentQuestion) return 'ignored';
 
       const q = state.currentQuestion;
       const p = currentPlayer();
@@ -168,6 +205,16 @@
 
       emit('wrong', { playerId: p.id, choiceIndex: choiceIndex });
       return 'warn';
+    }
+
+    /** 끝말잇기 — 말했으면 눌러서 다음 사람에게 넘긴다.
+     * 맞고 틀리고는 사람끼리 본다. 패드는 시간만 잰다. */
+    function pass() {
+      if (state.screen !== 'play' || state.mode !== 'word') return 'ignored';
+      state.passCount += 1;
+      state.turnIndex = (state.turnIndex + 1) % state.players.length;
+      emit('pass', { playerId: currentPlayer().id, count: state.passCount });
+      return 'passed';
     }
 
     /** 오답 연출이 끝난 뒤 같은 사람에게 새 문제. */
@@ -274,6 +321,7 @@
       currentPlayer: currentPlayer,
       startRound: startRound,
       answer: answer,
+      pass: pass,
       retryQuestion: retryQuestion,
       toResult: toResult,
       pause: pause,
@@ -291,6 +339,7 @@
     SEATS: SEATS,
     SEAT_PLANS: SEAT_PLANS,
     TIME_PRESETS: TIME_PRESETS,
-    TIME_JITTER_MS: TIME_JITTER_MS
+    TIME_JITTER_MS: TIME_JITTER_MS,
+    WORD_TOPICS: WORD_TOPICS
   };
 })(window);

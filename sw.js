@@ -5,7 +5,7 @@
  *
  * 화면과 코드는 network-first: 인터넷이 되면 새것을 받고, 안 되면 캐시.
  * 그림은 cache-first: 바뀌지 않는 데다 매번 받으면 느리다. */
-const CACHE = 'rocket-bomb-v2';
+const CACHE = 'rocket-bomb-v3';
 const ASSETS = [
   './',
   './index.html',

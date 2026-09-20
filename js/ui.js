@@ -110,10 +110,23 @@
     document.querySelectorAll('#time-row .time-btn').forEach((b) => {
       b.classList.toggle('on', +b.dataset.ti === settings.timeIndex);
     });
-    // 어른이 아무도 없으면 난이도 고르기가 의미 없다
+    // 끝말잇기는 문제를 내지 않는다 — 난이도 고르기가 의미 없다
+    const isWord = settings.mode === 'word';
+    const lvOpt = $('#level-opt');
+    if (lvOpt) lvOpt.style.display = isWord ? 'none' : '';
+
+    // 어른이 아무도 없어도 마찬가지
     const anyAdult = activeSetup().some((p) => p.type === 'adult');
     const lvRow = $('#level-row');
     if (lvRow) lvRow.classList.toggle('dim', !anyAdult);
+
+    // 제목을 모드에 맞게
+    const title = $('#setup-title');
+    if (title) {
+      title.innerHTML = isWord
+        ? '<span class="r">R</span> 끝말잇기 폭탄 돌리기'
+        : '<span class="r">R</span> 숫자 퀴즈 폭탄 돌리기';
+    }
   }
 
   function escapeAttr(s) {
@@ -123,6 +136,7 @@
   /* ============================================================== S2 준비 */
 
   function renderReady() {
+    $('#rules-box').innerHTML = RULES[settings.mode] || RULES.quiz;
     const box = $('#ready-order');
     box.innerHTML = '';
     const list = activeSetup();
@@ -144,12 +158,29 @@
     });
   }
 
+  const RULES = {
+    quiz:
+      '① 내 차례에 문제가 뜹니다<br>' +
+      '② 맞히면 다음 사람에게 넘어갑니다<br>' +
+      '③ <b>아이</b> — 한 턴에 두 번 틀리면 터집니다<br>' +
+      '④ <b>어른</b> — 판 전체에서 두 번 틀리면 터집니다<br>' +
+      '⑤ 시간이 다 되면 들고 있는 사람이 터집니다<br>' +
+      '⏱ 남은 시간은 보이지 않습니다. <b>소리가 빨라지면 조심!</b>',
+    word:
+      '① 주제에 맞는 말로 <b>끝말잇기</b>를 합니다<br>' +
+      '② 말했으면 <b>PASS</b> 를 눌러 다음 사람에게 넘깁니다<br>' +
+      '③ 맞고 틀리고는 <b>사람끼리</b> 봅니다 — 패드는 시간만 잽니다<br>' +
+      '④ 시간이 다 되면 들고 있는 사람이 터집니다<br>' +
+      '⏱ 남은 시간은 보이지 않습니다. <b>소리가 빨라지면 조심!</b>'
+  };
+
   /* ============================================================ S3 플레이 */
 
   function buildQuads() {
     const grid = $('#quad-grid');
     grid.innerHTML = '';
     grid.dataset.count = String(game.state.players.length);
+    const isWord = game.state.mode === 'word';
 
     game.state.players.forEach((p) => {
       const c = CH.find((x) => x.id === p.character);
@@ -165,6 +196,7 @@
             ' <span class="tag">' + (p.type === 'kid' ? '아이' : '어른') + '</span></div>' +
           '<img src="' + c.img + '" alt="" style="--cs:' + c.scale + '">' +
           '<div class="hearts idle-hearts"></div>' +
+          '<div class="head-topic idle-topic"></div>' +
         '</div>' +
         '<div class="quad-inner">' +
           '<div class="quad-head">' +
@@ -172,21 +204,32 @@
             '<span class="nm">' + escapeAttr(p.name) + '</span>' +
             '<span class="tag">' + (p.type === 'kid' ? '아이' : '어른') + '</span>' +
             '<span class="hearts"></span>' +
+            '<span class="head-topic"></span>' +
           '</div>' +
-          '<div class="q-body">' +
-            '<div class="q-text"></div>' +
-            '<div class="q-choices">' +
-              '<button class="choice" data-i="0"></button>' +
-              '<button class="choice" data-i="1"></button>' +
-              '<button class="choice" data-i="2"></button>' +
-              '<button class="choice" data-i="3"></button>' +
-            '</div>' +
-          '</div>' +
+          (isWord
+            ? '<button class="pass-btn">' +
+                '<span class="big">PASS</span>' +
+                '<span class="sub">말했으면 누르기</span>' +
+              '</button>'
+            : '<div class="q-body">' +
+                '<div class="q-text"></div>' +
+                '<div class="q-choices">' +
+                  '<button class="choice" data-i="0"></button>' +
+                  '<button class="choice" data-i="1"></button>' +
+                  '<button class="choice" data-i="2"></button>' +
+                  '<button class="choice" data-i="3"></button>' +
+                '</div>' +
+              '</div>') +
         '</div>';
 
-      quad.querySelectorAll('.choice').forEach((btn) => {
-        btn.addEventListener('click', () => onChoice(+btn.dataset.i, quad, btn));
-      });
+      if (isWord) {
+        quad.classList.add('word-mode');
+        quad.querySelector('.pass-btn').addEventListener('click', () => onPass(quad));
+      } else {
+        quad.querySelectorAll('.choice').forEach((btn) => {
+          btn.addEventListener('click', () => onChoice(+btn.dataset.i, quad, btn));
+        });
+      }
 
       grid.appendChild(quad);
     });
@@ -221,7 +264,7 @@
         '<span' + (left >= 2 ? '' : ' class="gone"') + '>♥</span>';
       quad.querySelectorAll('.hearts').forEach((h) => { h.innerHTML = hearts; });
 
-      if (live && q) {
+      if (live && q && game.state.mode === 'quiz') {
         quad.querySelector('.q-text').textContent = q.text;
         quad.querySelectorAll('.choice').forEach((btn, i) => {
           btn.textContent = q.choices[i];
@@ -259,6 +302,24 @@
       'translate(' + Math.round(dx / len * reach) + 'px,' +
                      Math.round(dy / len * reach) + 'px) ' +
       'rotate(' + (dx < 0 ? -14 : 14) + 'deg)';
+  }
+
+  /** 끝말잇기 — 말했으면 눌러서 넘긴다. */
+  function onPass(quad) {
+    if (busy || game.isPaused()) return;
+    if (game.state.mode !== 'word') return;
+
+    busy = true;
+    const btn = quad.querySelector('.pass-btn');
+    btn.classList.add('tapped');
+    window.Sound.correct();
+
+    later(() => {
+      btn.classList.remove('tapped');
+      game.pass();
+      busy = false;
+      renderTurn();
+    }, 260);
   }
 
   function onChoice(i, quad, btn) {
@@ -350,6 +411,16 @@
     $('#result-title').innerHTML = '<span class="who">' + escapeAttr(p.name) + '</span> 폭발! 💥';
     $('#result-cause').textContent =
       cause === 'timeout' ? '시간이 다 됐어요' : '두 번 틀렸어요';
+    // 끝말잇기는 몇 번 넘겼는지 보여준다 — 오래 버틸수록 뿌듯하다
+    const pc = $('#result-passes');
+    if (pc) {
+      if (game.state.mode === 'word' && game.state.passCount > 0) {
+        pc.textContent = '다같이 ' + game.state.passCount + '번 이어갔어요';
+        pc.style.display = '';
+      } else {
+        pc.style.display = 'none';
+      }
+    }
     show('screen-result');
   }
 
@@ -357,6 +428,7 @@
 
   function buildGame() {
     game = window.Game.create({
+      roundSetup: () => { buildQuads(); renderTopic(); },
       question: () => { if (!busy) renderTurn(); },
       tempo: (d) => applyTempo(d.intervalMs, d.ratioLeft),
       boom: (d) => playBoom(d),
@@ -367,7 +439,8 @@
   }
 
   function beginRound() {
-    buildQuads();
+    // 구역은 startRound 안의 roundSetup 콜백에서 그린다 —
+    // 모드가 정해진 뒤, 첫 문제가 나오기 전이어야 한다.
     game.startRound();
     renderTurn();
     window.Sound.startTick(1000);
@@ -375,9 +448,38 @@
     requestAnimationFrame(sizeQuads);
   }
 
+  /* 주제는 각 구역 머리띠 안에 둔다.
+   * 구역이 이미 그 사람 쪽으로 돌아가 있어 따로 회전할 필요가 없고,
+   * 화면 가운데를 덮지도 않는다. */
+  function renderTopic() {
+    const t = game.state.topic;
+    const on = game.state.mode === 'word' && !!t;
+    const html = on
+      ? '<span class="ic">' + t.icon + '</span>' + escapeAttr(t.label)
+      : '';
+    document.querySelectorAll('.head-topic').forEach((el) => {
+      el.innerHTML = html;
+      el.classList.toggle('on', on);
+    });
+  }
+
   /* ============================================================ 이벤트 */
 
   function wire() {
+    // 버전 고르기
+    document.querySelectorAll('.mode-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        settings.mode = card.dataset.mode;
+        applySettings();
+        renderSetup();
+        show('screen-setup');
+      });
+    });
+    $('#btn-home').addEventListener('click', () => {
+      window.Sound.stopTick();
+      show('screen-home');
+    });
+
     $('#btn-to-ready').addEventListener('click', () => {
       // 이름을 비운 사람은 캐릭터 이름으로 채운다
       activeSetup().forEach((p) => {
@@ -408,6 +510,10 @@
       window.Sound.stopTick();
       renderSetup();
       show('screen-setup');
+    });
+    $('#btn-mode').addEventListener('click', () => {
+      window.Sound.stopTick();
+      show('screen-home');
     });
     $('#btn-resume').addEventListener('click', () => {
       window.Sound.unlock().then(() => {
@@ -465,7 +571,7 @@
     window.addEventListener('orientationchange', () => later(sizeQuads, 260));
   }
 
-  const settings = { sound: true, flash: true, gentle: false, adultLevel: 3, timeIndex: 1 };
+  const settings = { sound: true, flash: true, gentle: false, adultLevel: 3, timeIndex: 1, mode: 'quiz' };
 
   function applySettings() {
     window.Sound.setEnabled(settings.sound);
@@ -475,6 +581,7 @@
       game.state.settings.gentle = settings.gentle;
       game.state.settings.adultLevel = settings.adultLevel;
       game.state.settings.timeIndex = settings.timeIndex;
+      game.state.settings.mode = settings.mode;
     }
   }
 
@@ -501,6 +608,10 @@
         });
         if ([1, 2, 3].indexOf(d.settings.adultLevel) >= 0) settings.adultLevel = d.settings.adultLevel;
         if ([0, 1, 2].indexOf(d.settings.timeIndex) >= 0) settings.timeIndex = d.settings.timeIndex;
+        // 모드는 저장하되, 열 때는 항상 버전 고르기부터 — 오늘 뭘 할지는 그날 정한다
+      }
+      if (d.settings && (d.settings.mode === 'quiz' || d.settings.mode === 'word')) {
+        settings.mode = d.settings.mode;
       }
       if ([2, 3, 4].indexOf(d.playerCount) >= 0) playerCount = d.playerCount;
     } catch (e) { /* 저장값이 깨졌으면 그냥 기본값으로 */ }
@@ -550,6 +661,7 @@
     settings: settings,
     setCount: (n) => { playerCount = n; renderSetup(); },
     setLevel: (lv) => { settings.adultLevel = lv; applySettings(); syncCountUI(); },
-    setTime: (ti) => { settings.timeIndex = ti; applySettings(); syncCountUI(); }
+    setTime: (ti) => { settings.timeIndex = ti; applySettings(); syncCountUI(); },
+    setMode: (m) => { settings.mode = m; applySettings(); renderSetup(); }
   };
 })();
