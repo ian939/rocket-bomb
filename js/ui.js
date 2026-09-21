@@ -205,6 +205,7 @@
             '<span class="tag">' + (p.type === 'kid' ? '아이' : '어른') + '</span>' +
             '<span class="hearts"></span>' +
             '<span class="head-topic"></span>' +
+            '<span class="bomb-slot"></span>' +
           '</div>' +
           (isWord
             ? '<button class="pass-btn">' +
@@ -277,34 +278,36 @@
     moveBomb(cur.seat);
   }
 
-  /* 폭탄은 지금 차례인 구역 쪽으로 옮긴다.
-   * 인원마다 구역 모양이 달라 좌표를 고정할 수 없어 실제 위치를 재서 쓴다. */
+  /* 폭탄은 지금 차례인 구역의 머리띠에 있는 빈 칸(.bomb-slot) 위로 간다.
+   *
+   * 화면 좌표를 직접 계산해봤지만 구역마다 회전이 걸려 있어 자리마다
+   * 어긋났고, 어느 귀퉁이에 두든 보기 버튼 2×2 가 구역을 꽉 채워 늘
+   * 무언가를 덮었다. 그래서 머리띠 안에 폭탄이 앉을 빈 칸을 두고,
+   * 그 칸의 실제 위치를 재서 폭탄을 그 위로 옮긴다.
+   *
+   * 폭탄을 그 칸 '안으로' 넣지는 않는다 — buildQuads 가 구역을 다시 그릴 때
+   * 같이 지워져, 폭발 연출에서 폭탄을 잃는다. */
   function moveBomb(seat) {
     const bomb = $('#bomb');
-    const quad = document.querySelector('.quad[data-seat="' + seat + '"]');
+    const slot = document.querySelector('.quad[data-seat="' + seat + '"] .bomb-slot');
     const grid = $('#quad-grid');
-    if (!quad || !grid) return;
+    if (!bomb || !slot || !grid) return;
 
-    const q = quad.getBoundingClientRect();
+    const r = slot.getBoundingClientRect();
     const g = grid.getBoundingClientRect();
-    const cx = g.left + g.width / 2;
-    const cy = g.top + g.height / 2;
+    if (!r.width) return;
 
-    // 화면 한가운데에서 그 구역 중심 쪽으로 조금만 다가간다
-    const dx = (q.left + q.width / 2) - cx;
-    const dy = (q.top + q.height / 2) - cy;
-    const len = Math.hypot(dx, dy) || 1;
-    const reach = Math.min(len * 0.34, 46);
+    const size = bomb.offsetWidth || 78;
+    bomb.style.setProperty('--bomb-x',
+      Math.round(r.left + r.width / 2 - g.left - size / 2) + 'px');
+    bomb.style.setProperty('--bomb-y',
+      Math.round(r.top + r.height / 2 - g.top - size / 2) + 'px');
 
-    bomb.style.setProperty('--bomb-x', '50%');
-    bomb.style.setProperty('--bomb-y', '50%');
-    bomb.style.transform =
-      'translate(' + Math.round(dx / len * reach) + 'px,' +
-                     Math.round(dy / len * reach) + 'px) ' +
-      'rotate(' + (dx < 0 ? -14 : 14) + 'deg)';
+    // 뒤집힌 자리에서는 심지가 위를 향하도록 그림만 되돌린다
+    const rot = +(slot.closest('.quad').dataset.rot || 0);
+    bomb.style.transform = rot ? 'rotate(' + (-rot) + 'deg)' : 'none';
   }
 
-  /** 끝말잇기 — 말했으면 눌러서 넘긴다. */
   function onPass(quad) {
     if (busy || game.isPaused()) return;
     if (game.state.mode !== 'word') return;
@@ -428,7 +431,14 @@
 
   function buildGame() {
     game = window.Game.create({
-      roundSetup: () => { buildQuads(); renderTopic(); },
+      roundSetup: () => {
+        buildQuads();
+        renderTopic();
+        // 새 구역의 크기가 확정된 뒤에 폭탄 자리를 잡는다
+        requestAnimationFrame(() => {
+          if (game) moveBomb(game.currentPlayer().seat);
+        });
+      },
       question: () => { if (!busy) renderTurn(); },
       tempo: (d) => applyTempo(d.intervalMs, d.ratioLeft),
       boom: (d) => playBoom(d),

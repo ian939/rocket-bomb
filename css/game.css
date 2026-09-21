@@ -411,11 +411,12 @@ button {
   font-size: 13px; color: var(--text-dim); font-weight: 700;
   background: rgba(0,0,0,.28); padding: 2px 8px; border-radius: 8px;
 }
-/* 중앙 폭탄이 모서리를 덮으므로 하트를 안쪽으로 물린다 */
-.quad-head .hearts { margin-left: auto; margin-right: 76px; font-size: 22px; letter-spacing: 2px; }
+.quad-head .hearts { margin-left: auto; font-size: 22px; letter-spacing: 2px; }
 .quad-head .hearts .gone { opacity: .22; }
 
 /* --- 문제 --- */
+/* 폭탄이 바깥 귀퉁이에 앉으므로 그 폭만큼 아래·옆을 비운다.
+ * 이렇게 해야 보기 버튼이 폭탄 밑으로 들어가지 않는다. */
 .q-body {
   flex: 1 1 auto;
   display: flex;
@@ -423,8 +424,18 @@ button {
   padding: 0 16px 14px;
   min-height: 0;
 }
+/* 머리띠 안에 앉은 폭탄.
+ * 머리띠보다 조금 커서 위아래로 살짝 넘치되, 문제 영역과는 닿지 않는다. */
+.bomb-slot {
+  position: relative;
+  width: 84px;
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+/* 슬롯은 자리만 잡는 빈 칸이다 — 폭탄은 그 위에 겹쳐 놓인다 */
 .q-text {
   flex: 0 0 26%;
+  margin-top: 13px;
   display: flex; align-items: center; justify-content: center;
   font-size: clamp(28px, 5.4vh, 50px);
   font-weight: 900;
@@ -471,7 +482,6 @@ button {
 .head-topic {
   display: none;
   margin-left: auto;
-  margin-right: 76px;        /* 가운데 폭탄을 피한다 */
   align-items: center;
   gap: 7px;
   padding: 4px 14px;
@@ -488,10 +498,11 @@ button {
 .idle-topic { margin: 0; font-size: 16px; }
 .idle-topic.on { display: flex; }
 
-/* Pass 는 구역을 거의 다 채운다 — 아이가 헤매지 않게 */
+/* Pass 는 구역을 거의 다 채운다 — 아이가 헤매지 않게.
+ * 위쪽은 머리띠에 앉은 폭탄만큼 띄운다. */
 .pass-btn {
   flex: 1 1 auto;
-  margin: 0 16px 14px;
+  margin: 13px 16px 14px;
   border-radius: 22px;
   background: var(--rocket-red);
   border: none;
@@ -518,15 +529,18 @@ button {
 .quad.word-mode .hearts { display: none; }
 
 /* --- 가운데 폭탄 --- */
+/* 폭탄은 현재 차례 구역의 머리띠에 있는 빈 칸 위로 옮겨 다닌다.
+ * 문제·보기 바깥이라 숫자를 덮지 않는다. 위치는 JS 가 픽셀로 준다. */
 #bomb {
   position: absolute;
   top: var(--bomb-y, 50%); left: var(--bomb-x, 50%);
-  width: clamp(70px, 11vh, 112px);
-  height: clamp(70px, 11vh, 112px);
-  margin: calc(clamp(70px, 11vh, 112px) / -2) 0 0 calc(clamp(70px, 11vh, 112px) / -2);
+  width: 78px;
+  height: 78px;
   pointer-events: none;
-  z-index: 5;
-  transition: transform .5s cubic-bezier(.34,1.3,.5,1);
+  z-index: 8;
+  transition: top .45s cubic-bezier(.34,1.3,.5,1),
+              left .45s cubic-bezier(.34,1.3,.5,1),
+              transform .45s cubic-bezier(.34,1.3,.5,1);
   filter: drop-shadow(0 6px 14px rgba(0,0,0,.6));
 }
 #bomb img { width: 100%; height: 100%; object-fit: contain; }
